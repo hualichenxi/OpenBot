@@ -23,20 +23,30 @@ def entity_link(sentence):
 
 	entity_list = []
 
+	#[别名, 别名加括号, 真名, 真名加括号]
 	for line in f1:
-		entity_list.append(unicode(line.strip()))
+		names = line.strip().split('\t')
+		if len(names) >= 4:
+			entity_list.append(names)
 	for line in f2:
-		entity_list.append(unicode(line.strip()))
+		names = line.strip().split('\t')
+		entity_list.append([names[0], names[1], names[0], names[1]])
 
 
 	top3_entity = []
-	for entity in entity_list:
+	for names in entity_list:
+		entity = unicode(names[0])
 		if entity == "":
 			continue
 
 		share_word = intersection(list(sentence), list(entity))
+		if len(share_word) == 0:
+			continue
+
+		#重合度
 		share_len = len(share_word) / float(len(entity))
 
+		#重合部分的离散度
 		min_index = 10000
 		max_index = -1
 		for word in share_word:
@@ -51,13 +61,46 @@ def entity_link(sentence):
 		if len(share_word) == 1:
 			share_dis = 0
 
+		#重合部分的顺序  相同字都按最小来算
+		#三生三世在句子里和实体里排序分别是(4, 4, 5, 7)和(0, 0, 1, 3)，顺序相同，分数为1。
+		sentence_indexes = []
+		entity_indexes = []
+		for word in share_word:
+			sentence_indexes.append((word, sentence.index(word)))
+			entity_indexes.append((word, entity.index(word)))
 
-		score = (share_len + share_dis) / 2
+		sentence_indexes.sort(key=lambda x:x[1])
+		entity_indexes.sort(key=lambda x:x[1]) 
+
+		count = 0
+		for index in range(0, len(share_word)):
+			if sentence_indexes[index][0] == entity_indexes[index][0]:
+				count += 1
+		share_order = float(count) / len(share_word)
+
+		
+
+
+		score = (share_len + share_dis + share_order) / 3
+
+		"""
+		去除映射到相同实体的词，仅更新分数
+		"""
+		rep = 0
+		for index in range(0, len(top3_entity)):
+			if names[3] == top3_entity[index][1]:
+				if score > top3_entity[index][0]:
+					top3_entity[index][0] = score
+				rep = 1
+				break
+		if rep == 1:
+			continue
+
 		if len(top3_entity) >= 3:
 			for index in range(0,3):
 				if score > top3_entity[index][0]:
 					top3_entity[index][0] = score
-					top3_entity[index][1] = entity
+					top3_entity[index][1] = names[3]
 					break
 		else:
 			top3_entity.append([score, entity])
@@ -70,23 +113,23 @@ def entity_link(sentence):
 
 entity_link(u"大幂幂在三生三世中扮演谁") #传入unicode
 """
-(幂幂 1.0)
-(大幂幂 1.0)
-(三生三世十里桃花 0.75)
+(杨幂 1.0)
+(三生三世十里桃花 0.833333333333)
+(学院传说之三生三世桃花缘 0.777777777778)
 """
 
 entity_link(u"刘德华的父亲是谁") 
 """
 (刘德华 1.0)
 (父亲 1.0)
-(我的父亲 0.875)
+(我的父亲 0.916666666667)
 """
 
-entity_link(u"玛丽昂·歌迪亚是谁") 
+entity_link(u"玛丽昂·歌地亚是谁") 
 """
-(玛丽昂·歌迪亚 1.0)
-(阿丽玛 0.833333333333)
-(玛丽森 0.833333333333)
+(玛丽昂·歌迪亚 0.904761904762)
+(歌者森 0.888888888889)
+(玛丽娜 0.888888888889)
 """
 
 #其他待补充特征
