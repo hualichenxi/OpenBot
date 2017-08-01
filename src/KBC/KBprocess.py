@@ -109,12 +109,12 @@ for item in collection_work.find():
                 work_cvt[entity_id[(title, 'work')]].add(id)
                 role_cvt[role].add(id)
 
-cPickle.dump(people_cvt, open('people_cvt.pkl', 'w'))
-cPickle.dump(work_cvt, open('work_cvt.pkl', 'w'))
-cPickle.dump(role_cvt, open('role_cvt.pkl', 'w'))
-people_cvt = cPickle.load(open('people_cvt.pkl', 'r'))
-work_cvt = cPickle.load(open('work_cvt.pkl', 'r'))
-role_cvt = cPickle.load(open('role_cvt.pkl', 'r'))
+# cPickle.dump(people_cvt, open('people_cvt.pkl', 'w'))
+# cPickle.dump(work_cvt, open('work_cvt.pkl', 'w'))
+# cPickle.dump(role_cvt, open('role_cvt.pkl', 'w'))
+# people_cvt = cPickle.load(open('people_cvt.pkl', 'r'))
+# work_cvt = cPickle.load(open('work_cvt.pkl', 'r'))
+# role_cvt = cPickle.load(open('role_cvt.pkl', 'r'))
 print('Finish getting cvt information')
 
 ## Entity
@@ -132,7 +132,7 @@ for item in collection_people.find():
     if new_item['infobox'] == None:
         new_item['infobox'] = {}
     try:
-        new_item['infobox']['作品'] = list(people_cvt[entity_id[(title, 'work')]])
+        new_item['infobox']['作品'] = list(people_cvt[new_item['id']])
     except Exception, e:
         new_item['infobox']['作品'] = None
     new_item['type'] = 'people'
@@ -152,7 +152,7 @@ for item in collection_work.find():
     if new_item['infobox'] == None:
         new_item['infobox'] = {}
     try:
-        new_item['infobox']['演员'] = list(work_cvt[entity_id[(title, 'people')]])
+        new_item['infobox']['演员'] = list(work_cvt[new_item['id']])
     except Exception, e:
         new_item['infobox']['演员'] = None
     new_item['type'] = 'work'
@@ -168,7 +168,7 @@ for item in collection_work.find():
                 continue
             else:
                 occrs.add(role)
-            role_item = {'id':entity_id[(role, 'role')], 'title':role, 'infobox':{}, 'type':'role'}
+            role_item = {'id':entity_id[(role, 'role')], 'title':role, 'infobox':{u'出现': list(role_cvt[entity_id[(role, 'role')]])}, 'type':'role'}
             # try:
             #     role_item['infobox']['出现在'] = list(role_cvt[entity_id[title]])
             # except Exception, e:
