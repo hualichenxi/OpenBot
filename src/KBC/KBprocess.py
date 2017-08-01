@@ -1,10 +1,6 @@
 #!/usr/bin/python
 # coding=utf-8
 
-'''
-Preprocess the raw data, and change it to specified CVT-form
-'''
-
 from pymongo import MongoClient
 import codecs
 import cPickle
@@ -28,26 +24,26 @@ id = 0
 occrs = set()
 for item in collection_people.find():
     title = item['title']
-    if title in occrs:
+    if (title, 'people') in occrs:
         continue
     else:
-        occrs.add(title)
+        occrs.add((title, 'people'))
     
     id += 1
     id_entity[id] = title
-    entity_id[title] = id
+    entity_id[(title, 'people')] = id
 
 occrs = set()
 for item in collection_work.find():
     title = item['title']
-    if title in occrs:
+    if (title, 'work') in occrs:
         continue
     else:
-        occrs.add(title)
+        occrs.add((title, 'work'))
     id += 1
 
     id_entity[id] = title
-    entity_id[title] = id
+    entity_id[(title, 'work')] = id
 
     roles_desc = item['roles_desc']
     if roles_desc != None:
@@ -55,13 +51,13 @@ for item in collection_work.find():
             role = role_desc['role'][0]
             if type(role) == list:
                 role = role[0]
-            if role in occrs:
+            if (role, 'role') in occrs:
                 continue
             else:
-                occrs.add(role)
+                occrs.add((role, 'role'))
             id += 1
             id_entity[id] = role
-            entity_id[role] = id
+            entity_id[(role, 'role')] = id
 
 cPickle.dump(id_entity, open('id_entity.pkl', 'w'))
 cPickle.dump(entity_id, open('entity_id.pkl', 'w'))
@@ -90,14 +86,14 @@ for item in collection_work.find():
                 role = role_desc['role'][0]
                 if type(role) == list:
                     role = role[0]
-                role = entity_id[role]
+                role = entity_id[(role, 'role')]
             except Exception, e:
                 role = None
             try:
                 actor = role_desc['actor'][0]
                 if type(actor) == list:
                     actor = actor[0]
-                actor = entity_id[actor]
+                actor = entity_id[(actor, 'people')]
             except Exception, e:
                 actor = None
 
@@ -105,12 +101,12 @@ for item in collection_work.find():
             if role != None and actor != None:
                 id += 1
                 cvt = {"id":id, 'relation':{}}
-                cvt['relation']['work'] = entity_id[title]
+                cvt['relation']['work'] = entity_id[(title, 'work')]
                 cvt['relation']['role'] = role
                 cvt['relation']['actor'] = actor
                 new_collection_cvt.insert(cvt)
                 people_cvt[actor].add(id)
-                work_cvt[entity_id[title]].add(id)
+                work_cvt[entity_id[(title, 'work')]].add(id)
                 role_cvt[role].add(id)
 
 cPickle.dump(people_cvt, open('people_cvt.pkl', 'w'))
@@ -130,13 +126,13 @@ for item in collection_people.find():
     else:
         occrs.add(title)
     new_item = {}
-    new_item['id'] = entity_id[title]
+    new_item['id'] = entity_id[(title, 'people')]
     new_item['title'] = title
     new_item['infobox'] = item['infobox']
     if new_item['infobox'] == None:
         new_item['infobox'] = {}
     try:
-        new_item['infobox']['作品'] = list(people_cvt[entity_id[title]])
+        new_item['infobox']['作品'] = list(people_cvt[entity_id[(title, 'work')]])
     except Exception, e:
         new_item['infobox']['作品'] = None
     new_item['type'] = 'people'
@@ -146,7 +142,7 @@ occrs = set()
 for item in collection_work.find():
     title = item['title']
     new_item = {}
-    new_item['id'] = entity_id[title]
+    new_item['id'] = entity_id[(title, 'work')]
     if title in occrs:
         continue
     else:
@@ -156,7 +152,7 @@ for item in collection_work.find():
     if new_item['infobox'] == None:
         new_item['infobox'] = {}
     try:
-        new_item['infobox']['演员'] = list(work_cvt[entity_id[title]])
+        new_item['infobox']['演员'] = list(work_cvt[entity_id[(title, 'people')]])
     except Exception, e:
         new_item['infobox']['演员'] = None
     new_item['type'] = 'work'
@@ -172,7 +168,7 @@ for item in collection_work.find():
                 continue
             else:
                 occrs.add(role)
-            role_item = {'id':entity_id[role], 'title':role, 'infobox':{}, 'type':'role'}
+            role_item = {'id':entity_id[(role, 'role')], 'title':role, 'infobox':{}, 'type':'role'}
             # try:
             #     role_item['infobox']['出现在'] = list(role_cvt[entity_id[title]])
             # except Exception, e:
