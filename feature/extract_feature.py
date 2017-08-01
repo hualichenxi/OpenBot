@@ -17,7 +17,7 @@ def intersection(a, b):
 """
 遍历句子列表，选出句子中前三个关联度最高的实体，并打分作为后续特征
 """
-def entity_link(sentence):
+def EntityLinkingScore(sentence):
 	f1 = open('../data/person_name_list.txt', 'r')
 	f2 = open('../data/work_name_list.txt', 'r')
 
@@ -78,8 +78,6 @@ def entity_link(sentence):
 				count += 1
 		share_order = float(count) / len(share_word)
 
-		
-
 
 		score = (share_len + share_dis + share_order) / 3
 
@@ -103,29 +101,74 @@ def entity_link(sentence):
 					top3_entity[index][1] = names[3]
 					break
 		else:
-			top3_entity.append([score, entity])
+			top3_entity.append([score, entity]) 
 		
-
-
 	for entity in top3_entity:
 		print "(" + str(entity[1]) + " " + str(entity[0]) + ")"
+	return top3_entity
 
 
-entity_link(u"大幂幂在三生三世中扮演谁") #传入unicode
+"""
+子图的aggregation节点在问题中的占比
+"""
+def ConstraintEntityWord(candidate, question):
+	aggregation_list = []
+	for i in range(1, len(candidate) - 1): #首尾节点不找
+		aggregations = candidate[i].aggregations
+		for relation, entity in aggregations:
+			aggregation_list.append(entity.name)
+
+	score = 0
+	for aggregation in aggregation_list:
+		share_word = intersection(list(aggregation), list(question))
+		score += len(share_word) / float(len(entity))
+
+	score /= len(aggregation_list)
+
+	return score
+
+"""
+子图的aggregation的实体节点是否能链接到知识库
+"""
+def ConstraintEntityInQ(candidate, question):
+	entity_list = []
+	aggregation_list = []
+
+	top3_entity = EntityLinkingScore(question)  #这里改成top4比较好？第一个不算
+	for entity in top3_entity:
+		entity_list.append(entity[0])
+
+	score = 0
+	for i in range(1, len(candidate) - 1):
+		aggregations = candidate[i].aggregations
+		for relation, entity in aggregations:
+			if entity.is_aggr == True:
+				aggregation_list.append(entity.name)
+
+	for aggregation in aggregation_list:
+		if aggregation in entity_list:
+			score += 1
+
+	score /= float(len(aggregation_list))
+	return score
+
+
+
+EntityLinkingScore(u"大幂幂在三生三世中扮演谁") #传入unicode
 """
 (杨幂 1.0)
 (三生三世十里桃花 0.833333333333)
 (学院传说之三生三世桃花缘 0.777777777778)
 """
 
-entity_link(u"刘德华的父亲是谁") 
+EntityLinkingScore(u"刘德华的父亲是谁") 
 """
 (刘德华 1.0)
 (父亲 1.0)
 (我的父亲 0.916666666667)
 """
 
-entity_link(u"玛丽昂·歌地亚是谁") 
+EntityLinkingScore(u"玛丽昂·歌地亚是谁") 
 """
 (玛丽昂·歌迪亚 0.904761904762)
 (歌者森 0.888888888889)
